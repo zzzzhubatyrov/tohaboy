@@ -48,21 +48,30 @@ type LocationRepositoryInterface interface {
 
 type MovementRepositoryInterface interface {
 	CreateMovement(movement *model.Movement) model.Response[*model.Movement]
-	GetMovement(id int) model.Response[*model.Movement]
+	GetMovement(id uint) model.Response[*model.Movement]
 	GetAllMovements() model.Response[[]model.Movement]
-	GetMovementsByEquipment(equipmentID int) model.Response[[]model.Movement]
-	GetMovementsByLocation(locationID int) model.Response[[]model.Movement]
+	GetMovementsByEquipment(equipmentID uint) model.Response[[]model.Movement]
+	GetMovementsByLocation(locationID uint) model.Response[[]model.Movement]
 	UpdateMovement(movement *model.Movement) model.Response[*model.Movement]
-	DeleteMovement(id int) model.Response[*model.Movement]
+	DeleteMovement(id uint) model.Response[*model.Movement]
 }
 
 type DocumentRepositoryInterface interface {
 	CreateDocument(doc *model.Document) model.Response[*model.Document]
-	GetDocument(id int) model.Response[*model.Document]
+	GetDocument(id uint) model.Response[*model.Document]
 	GetAllDocuments() model.Response[[]model.Document]
 	UpdateDocument(doc *model.Document) model.Response[*model.Document]
-	DeleteDocument(id int) model.Response[*model.Document]
-	ApproveDocument(id int, approvedByID int) model.Response[*model.Document]
+	DeleteDocument(id uint) model.Response[*model.Document]
+	ApproveDocument(id uint, approvedByID uint) model.Response[*model.Document]
+	GetDB() *gorm.DB
+}
+
+type CategoryRepositoryInterface interface {
+	CreateCategory(category *model.Category) model.Response[*model.Category]
+	GetCategory(id int) model.Response[*model.Category]
+	GetAllCategories() model.Response[[]model.Category]
+	UpdateCategory(category *model.Category) model.Response[*model.Category]
+	DeleteCategory(id int) model.Response[*model.Category]
 }
 
 type Repository struct {
@@ -73,6 +82,7 @@ type Repository struct {
 	Location  LocationRepositoryInterface
 	Movement  MovementRepositoryInterface
 	Document  DocumentRepositoryInterface
+	Category  CategoryRepositoryInterface
 }
 
 func NewRepository(db *gorm.DB) *Repository {
@@ -84,5 +94,6 @@ func NewRepository(db *gorm.DB) *Repository {
 		Location:                NewLocationRepository(db),
 		Movement:                NewMovementRepository(db),
 		Document:                NewDocumentRepository(db),
+		Category:                NewCategoryRepository(db),
 	}
 }

@@ -25,7 +25,7 @@ func (s *MovementService) CreateMovement(movement *model.Movement) *model.Moveme
 	}
 
 	// Устанавливаем дату создания
-	movement.Date = model.Date(time.Now())
+	movement.Date = time.Now()
 
 	// Создаем документ перемещения
 	doc := &model.Document{
@@ -61,7 +61,7 @@ func (s *MovementService) CreateMovement(movement *model.Movement) *model.Moveme
 	}
 }
 
-func (s *MovementService) GetMovement(id int) *model.MovementResponse {
+func (s *MovementService) GetMovement(id uint) *model.MovementResponse {
 	response := s.repo.GetMovement(id)
 	return &model.MovementResponse{
 		Model:   response.Model,
@@ -85,7 +85,7 @@ func (s *MovementService) UpdateMovement(movement *model.Movement) *model.Moveme
 	}
 }
 
-func (s *MovementService) DeleteMovement(id int) *model.MovementResponse {
+func (s *MovementService) DeleteMovement(id uint) *model.MovementResponse {
 	response := s.repo.DeleteMovement(id)
 	return &model.MovementResponse{
 		Model:   response.Model,
@@ -93,7 +93,7 @@ func (s *MovementService) DeleteMovement(id int) *model.MovementResponse {
 	}
 }
 
-func (s *MovementService) GetMovementsByEquipment(equipmentID int) *model.MovementListResponse {
+func (s *MovementService) GetMovementsByEquipment(equipmentID uint) *model.MovementListResponse {
 	response := s.repo.GetMovementsByEquipment(equipmentID)
 	return &model.MovementListResponse{
 		Model:   response.Model,
@@ -101,7 +101,7 @@ func (s *MovementService) GetMovementsByEquipment(equipmentID int) *model.Moveme
 	}
 }
 
-func (s *MovementService) GetMovementsByLocation(locationID int) *model.MovementListResponse {
+func (s *MovementService) GetMovementsByLocation(locationID uint) *model.MovementListResponse {
 	response := s.repo.GetMovementsByLocation(locationID)
 	return &model.MovementListResponse{
 		Model:   response.Model,

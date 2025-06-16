@@ -44,21 +44,30 @@ type LocationServiceInterface interface {
 
 type MovementServiceInterface interface {
 	CreateMovement(movement *model.Movement) *model.MovementResponse
-	GetMovement(id int) *model.MovementResponse
+	GetMovement(id uint) *model.MovementResponse
 	GetAllMovements() *model.MovementListResponse
-	GetMovementsByEquipment(equipmentID int) *model.MovementListResponse
-	GetMovementsByLocation(locationID int) *model.MovementListResponse
 	UpdateMovement(movement *model.Movement) *model.MovementResponse
-	DeleteMovement(id int) *model.MovementResponse
+	DeleteMovement(id uint) *model.MovementResponse
+	GetMovementsByEquipment(equipmentID uint) *model.MovementListResponse
+	GetMovementsByLocation(locationID uint) *model.MovementListResponse
 }
 
 type DocumentServiceInterface interface {
 	CreateDocument(doc *model.Document) *model.DocumentResponse
-	GetDocument(id int) *model.DocumentResponse
+	GetDocument(id uint) *model.DocumentResponse
 	GetAllDocuments() *model.DocumentListResponse
 	UpdateDocument(doc *model.Document) *model.DocumentResponse
-	DeleteDocument(id int) *model.DocumentResponse
-	ApproveDocument(id int, approvedByID int) *model.DocumentResponse
+	DeleteDocument(id uint) *model.DocumentResponse
+	ApproveDocument(id uint, approvedByID uint) *model.DocumentResponse
+	ExportDocument(id uint) *model.DocumentExportResponse
+}
+
+type CategoryServiceInterface interface {
+	CreateCategory(category *model.Category) *model.CategoryResponse
+	GetCategory(id int) *model.CategoryResponse
+	GetAllCategories() *model.CategoryListResponse
+	UpdateCategory(category *model.Category) *model.CategoryResponse
+	DeleteCategory(id int) *model.CategoryResponse
 }
 
 type Service struct {
@@ -69,6 +78,7 @@ type Service struct {
 	LocationService  LocationServiceInterface
 	MovementService  MovementServiceInterface
 	DocumentService  DocumentServiceInterface
+	CategoryService  CategoryServiceInterface
 }
 
 func NewService(repos *repository.Repository) *Service {
@@ -81,5 +91,6 @@ func NewService(repos *repository.Repository) *Service {
 		LocationService:      NewLocationService(repos.Location),
 		MovementService:      NewMovementService(repos.Movement, docService),
 		DocumentService:      docService,
+		CategoryService:      NewCategoryService(repos.Category),
 	}
 }

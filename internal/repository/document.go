@@ -1,12 +1,17 @@
 package repository
 
 import (
-	"gorm.io/gorm"
 	"tohaboy/internal/model"
+
+	"gorm.io/gorm"
 )
 
 type DocumentRepository struct {
 	db *gorm.DB
+}
+
+func (r *DocumentRepository) GetDB() *gorm.DB {
+	return r.db
 }
 
 func NewDocumentRepository(db *gorm.DB) *DocumentRepository {
@@ -17,6 +22,9 @@ func (r *DocumentRepository) CreateDocument(doc *model.Document) model.Response[
 	// Начинаем транзакцию
 	tx := r.db.Begin()
 
+	// Создаем документ без items
+	items := doc.Items
+	doc.Items = nil
 	if err := tx.Create(doc).Error; err != nil {
 		tx.Rollback()
 		return model.Response[*model.Document]{
@@ -25,9 +33,10 @@ func (r *DocumentRepository) CreateDocument(doc *model.Document) model.Response[
 	}
 
 	// Создаем позиции документа
-	for i := range doc.Items {
-		doc.Items[i].DocumentID = doc.ID
-		if err := tx.Create(&doc.Items[i]).Error; err != nil {
+	for i := range items {
+		items[i].DocumentID = doc.ID
+		items[i].ID = 0 // Ensure ID is zero to let GORM auto-increment
+		if err := tx.Create(&items[i]).Error; err != nil {
 			tx.Rollback()
 			return model.Response[*model.Document]{
 				Message: err.Error(),
@@ -58,7 +67,7 @@ func (r *DocumentRepository) CreateDocument(doc *model.Document) model.Response[
 	}
 }
 
-func (r *DocumentRepository) GetDocument(id int) model.Response[*model.Document] {
+func (r *DocumentRepository) GetDocument(id uint) model.Response[*model.Document] {
 	var doc model.Document
 
 	if err := r.db.Preload("Items.Equipment").
@@ -116,6 +125,7 @@ func (r *DocumentRepository) UpdateDocument(doc *model.Document) model.Response[
 	// Создаем новые позиции
 	for i := range doc.Items {
 		doc.Items[i].DocumentID = doc.ID
+		doc.Items[i].ID = 0 // Reset ID to let GORM auto-increment
 		if err := tx.Create(&doc.Items[i]).Error; err != nil {
 			tx.Rollback()
 			return model.Response[*model.Document]{
@@ -147,7 +157,7 @@ func (r *DocumentRepository) UpdateDocument(doc *model.Document) model.Response[
 	}
 }
 
-func (r *DocumentRepository) DeleteDocument(id int) model.Response[*model.Document] {
+func (r *DocumentRepository) DeleteDocument(id uint) model.Response[*model.Document] {
 	// Начинаем транзакцию
 	tx := r.db.Begin()
 
@@ -218,7 +228,7 @@ func (r *DocumentRepository) GetAllDocuments() model.Response[[]model.Document] 
 	}
 }
 
-func (r *DocumentRepository) ApproveDocument(id int, approvedByID int) model.Response[*model.Document] {
+func (r *DocumentRepository) ApproveDocument(id uint, approvedByID uint) model.Response[*model.Document] {
 	// Начинаем транзакцию
 	tx := r.db.Begin()
 

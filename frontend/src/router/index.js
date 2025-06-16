@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router'
 import { getToken } from '../utils/auth'
-import HomeView from '../view/HomeView.vue'
-import AuthView from '../view/AuthView.vue'
+import HomeView from '../views/EquipmentView.vue'
+import AuthView from '../views/AuthView.vue'
 
 const routes = [
     {
@@ -18,19 +18,19 @@ const routes = [
     {
         path: '/suppliers',
         name: 'suppliers',
-        component: () => import('../view/SuppliersView.vue'),
+        component: () => import('../views/SuppliersView.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/documents',
         name: 'documents',
-        component: () => import('../view/DocumentsView.vue'),
+        component: () => import('../views/DocumentsView.vue'),
         meta: { requiresAuth: true }
     },
     {
         path: '/movements',
         name: 'movements',
-        component: () => import('../view/MovementsView.vue'),
+        component: () => import('../views/MovementsView.vue'),
         meta: { requiresAuth: true }
     }
 ]

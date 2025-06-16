@@ -1,8 +1,7 @@
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
-import { Login } from '../../../wailsjs/go/service/AuthService'
-import { removeToken, getToken } from '../../utils/auth'
+import { clearAuth, getToken, getUser } from '../../utils/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,27 +15,25 @@ const navLeftLinks = [
 
 const username = ref('')
 
-onMounted(async () => {
+onMounted(() => {
   // Проверяем наличие токена
   if (!getToken()) {
     router.push('/auth')
     return
   }
 
-  try {
-    const response = await Login({ username: "admin", password: "admin" })
-    if (response) {
-      username.value = response.username
-    }
-  } catch (error) {
-    console.error('Ошибка загрузки пользователя:', error)
-    removeToken()
+  // Получаем информацию о пользователе из хранилища
+  const user = getUser()
+  if (user) {
+    username.value = user.username
+  } else {
+    clearAuth()
     router.push('/auth')
   }
 })
 
 function logout() {
-  removeToken()
+  clearAuth()
   router.push('/auth')
 }
 </script>

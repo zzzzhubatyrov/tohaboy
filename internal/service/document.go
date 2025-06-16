@@ -1,7 +1,9 @@
 package service
 
 import (
+	"encoding/base64"
 	"fmt"
+	"strconv"
 	"time"
 	"tohaboy/internal/model"
 	"tohaboy/internal/repository"
@@ -23,15 +25,31 @@ func (s *DocumentService) CreateDocument(doc *model.Document) *model.DocumentRes
 		}
 	}
 
-	// Генерируем номер документа
-	doc.Number = s.generateDocumentNumber(doc.Type)
+	// Генерируем уникальный номер документа
+	var uniqueNumber string
+	var attempts int
+	for attempts = 0; attempts < 10; attempts++ {
+		proposedNumber := s.generateDocumentNumber(doc.Type)
+		var count int64
+		err := s.repo.GetDB().Model(&model.Document{}).Where("number = ?", proposedNumber).Count(&count).Error
+		if err == nil && count == 0 {
+			uniqueNumber = proposedNumber
+			break
+		}
+	}
+	if attempts == 10 {
+		return &model.DocumentResponse{
+			Message: "Не удалось сгенерировать уникальный номер документа",
+		}
+	}
+	doc.Number = uniqueNumber
 
 	// Устанавливаем статус черновика
 	doc.Status = "draft"
 
 	// Если дата не установлена, используем текущую
-	if doc.Date.Time().IsZero() {
-		doc.Date = model.Date(time.Now())
+	if doc.Date.IsZero() {
+		doc.Date = time.Now()
 	}
 
 	// Рассчитываем TotalPrice для каждой позиции
@@ -46,7 +64,7 @@ func (s *DocumentService) CreateDocument(doc *model.Document) *model.DocumentRes
 	}
 }
 
-func (s *DocumentService) GetDocument(id int) *model.DocumentResponse {
+func (s *DocumentService) GetDocument(id uint) *model.DocumentResponse {
 	response := s.repo.GetDocument(id)
 	return &model.DocumentResponse{
 		Model:   response.Model,
@@ -70,7 +88,7 @@ func (s *DocumentService) UpdateDocument(doc *model.Document) *model.DocumentRes
 	}
 }
 
-func (s *DocumentService) DeleteDocument(id int) *model.DocumentResponse {
+func (s *DocumentService) DeleteDocument(id uint) *model.DocumentResponse {
 	response := s.repo.DeleteDocument(id)
 	return &model.DocumentResponse{
 		Model:   response.Model,
@@ -78,12 +96,39 @@ func (s *DocumentService) DeleteDocument(id int) *model.DocumentResponse {
 	}
 }
 
-func (s *DocumentService) ApproveDocument(id int, approvedByID int) *model.DocumentResponse {
+func (s *DocumentService) ApproveDocument(id uint, approvedByID uint) *model.DocumentResponse {
 	response := s.repo.ApproveDocument(id, approvedByID)
 	return &model.DocumentResponse{
 		Model:   response.Model,
 		Message: response.Message,
 	}
+}
+
+func (s *DocumentService) ExportDocument(id uint) *model.DocumentExportResponse {
+	// старый экспорт в удобный для нас формат
+	// Создаем сервис экспорта
+	exportService := NewExportService(s)
+	content, err := exportService.ExportDocument(id)
+	if err != nil {
+		return &model.DocumentExportResponse{
+			Message: fmt.Sprintf("Ошибка экспорта документа: %v", err),
+		}
+	}
+
+	// Преобразуем байты в строку для отправки в фронтенд
+	return &model.DocumentExportResponse{
+		Content: base64.StdEncoding.EncodeToString(content),
+		Message: "Документ успешно экспортирован",
+	}
+}
+
+func (s *DocumentService) ExportDocumentGOST(id uint) *model.DocumentExportResponse {
+    exportService := NewExportService(s)
+    content, err := exportService.ExportDocumentGOST(id)
+    if err != nil {
+        return &model.DocumentExportResponse{Message: fmt.Sprintf("Ошибка экспорта (ГОСТ): %v", err)}
+    }
+    return &model.DocumentExportResponse{Content: base64.StdEncoding.EncodeToString(content), Message: "Документ ГОСТ успешно экспортирован"}
 }
 
 // Вспомогательные методы
@@ -139,18 +184,32 @@ func (s *DocumentService) generateDocumentNumber(docType string) string {
 	// Получаем текущий год
 	year := time.Now().Year()
 
-	// Получаем все документы этого типа
-	response := s.GetAllDocuments()
-	count := 1
-	if response.Model != nil {
-		// Считаем количество документов этого типа
-		for _, doc := range response.Model {
-			if doc.Type == docType {
-				count++
-			}
-		}
+	// Получаем максимальный номер для текущего года и типа документа
+	var maxNumber string
+	pattern := fmt.Sprintf("%s-%d-%%", prefix, year)
+	err := s.repo.GetDB().Model(&model.Document{}).
+		Where("type = ? AND number LIKE ?", docType, pattern).
+		Select("number").
+		Order("number DESC").
+		Limit(1).
+		Scan(&maxNumber).Error
+
+	if err != nil {
+		// Если нет документов для этого года, начинаем с 1
+		return fmt.Sprintf("%s-%d-001", prefix, year)
 	}
 
-	// Формируем номер в формате ПРФ-2024-001
-	return fmt.Sprintf("%s-%d-%03d", prefix, year, count)
+	// Извлекаем номер из последнего документа
+	lastNumber := "001"
+	if len(maxNumber) >= 11 {
+		lastNumber = maxNumber[8:11]
+	}
+
+	// Преобразуем номер в число и увеличиваем на 1
+	count, err := strconv.Atoi(lastNumber)
+	if err != nil {
+		count = 1
+	}
+
+	return fmt.Sprintf("%s-%d-%03d", prefix, year, count+1)
 }

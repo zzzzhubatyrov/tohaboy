@@ -66,3 +66,8 @@ type LocationListResponse struct {
 	Model   []Location `json:"model"`
 	Message string     `json:"msg"`
 }
+
+type DocumentExportResponse struct {
+	Content string `json:"content"`
+	Message string `json:"message"`
+}

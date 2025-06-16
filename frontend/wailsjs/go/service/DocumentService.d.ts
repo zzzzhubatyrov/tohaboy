@@ -8,6 +8,10 @@ export function CreateDocument(arg1:model.Document):Promise<model.DocumentRespon
 
 export function DeleteDocument(arg1:number):Promise<model.DocumentResponse>;
 
+export function ExportDocument(arg1:number):Promise<model.DocumentExportResponse>;
+
+export function ExportDocumentGOST(arg1:number):Promise<model.DocumentExportResponse>;
+
 export function GetAllDocuments():Promise<model.DocumentListResponse>;
 
 export function GetDocument(arg1:number):Promise<model.DocumentResponse>;

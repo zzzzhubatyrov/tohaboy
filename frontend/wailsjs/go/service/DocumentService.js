@@ -14,6 +14,14 @@ export function DeleteDocument(arg1) {
   return window['go']['service']['DocumentService']['DeleteDocument'](arg1);
 }
 
+export function ExportDocument(arg1) {
+  return window['go']['service']['DocumentService']['ExportDocument'](arg1);
+}
+
+export function ExportDocumentGOST(arg1) {
+  return window['go']['service']['DocumentService']['ExportDocumentGOST'](arg1);
+}
+
 export function GetAllDocuments() {
   return window['go']['service']['DocumentService']['GetAllDocuments']();
 }

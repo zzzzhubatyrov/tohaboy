@@ -8,11 +8,18 @@ import (
 )
 
 // Date специальный тип для работы с датами
-type Date time.Time
+type Date struct {
+	t time.Time
+}
+
+// NewDate создает новый объект Date
+func NewDate(t time.Time) Date {
+	return Date{t: t}
+}
 
 // MarshalJSON реализует интерфейс json.Marshaler
 func (d Date) MarshalJSON() ([]byte, error) {
-	return json.Marshal(time.Time(d).Format("2006-01-02"))
+	return json.Marshal(d.t.Format("2006-01-02"))
 }
 
 // UnmarshalJSON реализует интерфейс json.Unmarshaler
@@ -27,38 +34,38 @@ func (d *Date) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	*d = Date(parsedTime)
+	d.t = parsedTime
 	return nil
 }
 
 // Scan реализует интерфейс sql.Scanner
 func (d *Date) Scan(value interface{}) error {
 	if value == nil {
-		*d = Date(time.Time{})
+		d.t = time.Time{}
 		return nil
 	}
 
 	switch v := value.(type) {
 	case time.Time:
-		*d = Date(v)
+		d.t = v
 	case string:
 		parsedTime, err := time.Parse("2006-01-02", v)
 		if err != nil {
 			return err
 		}
-		*d = Date(parsedTime)
+		d.t = parsedTime
 	}
 	return nil
 }
 
 // Value реализует интерфейс driver.Valuer
 func (d Date) Value() (interface{}, error) {
-	return time.Time(d), nil
+	return d.t, nil
 }
 
-// Time конвертирует Date в time.Time
+// Time возвращает time.Time
 func (d Date) Time() time.Time {
-	return time.Time(d)
+	return d.t
 }
 
 // User представляет учётную запись пользователя системы
@@ -72,9 +79,9 @@ func (d Date) Time() time.Time {
 //	UpdatedAt - дата последнего обновления
 //	DeletedAt - метка мягкого удаления (не экспортируется в JSON)
 type User struct {
-	ID        int            `gorm:"primaryKey" json:"id"`
+	ID        uint           `gorm:"primaryKey" json:"id"`
 	Username  string         `gorm:"unique" json:"username"`
-	Password  string         `json:"password"`
+	Password  string         `json:"password"` // Don't expose password in JSON
 	Role      string         `json:"role"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -100,18 +107,19 @@ type User struct {
 //	Documents - связанные документы
 //	CreatedAt/UpdatedAt - метки времени
 type Equipment struct {
-	ID           int            `gorm:"primaryKey" json:"id"`
+	ID           uint           `gorm:"primaryKey" json:"id"`
 	Name         string         `json:"name"`
-	SerialNumber string         `gorm:"unique" json:"serial_number"`
-	Category     string         `json:"category"`
 	Description  string         `json:"description"`
-	Price        float64        `json:"price"`
+	SerialNumber string         `gorm:"unique" json:"serial_number"`
 	Status       string         `json:"status"`
 	Quantity     int            `json:"quantity"`
-	LocationID   int            `json:"location_id"`
-	Location     *Location      `gorm:"foreignKey:LocationID" json:"location"`
-	SupplierID   int            `json:"supplier_id"`
-	Supplier     *Supplier      `gorm:"foreignKey:SupplierID" json:"supplier"`
+	Price        float64        `json:"price"`
+	CategoryID   uint           `json:"category_id"`
+	Category     *Category      `gorm:"foreignKey:CategoryID;references:ID" json:"category"`
+	LocationID   uint           `json:"location_id"`
+	Location     *Location      `gorm:"foreignKey:LocationID;references:ID" json:"location"`
+	SupplierID   uint           `json:"supplier_id"`
+	Supplier     *Supplier      `gorm:"foreignKey:SupplierID;references:ID" json:"supplier"`
 	Movements    []Movement     `gorm:"foreignKey:EquipmentID" json:"movements"`
 	Documents    []DocumentItem `gorm:"foreignKey:EquipmentID" json:"documents"`
 	CreatedAt    time.Time      `json:"created_at"`
@@ -123,12 +131,16 @@ type Equipment struct {
 //
 //	ID - уникальный идентификатор
 //	Name - название компании
-//	ContactInfo - контакты (телефон/email/контактное лицо)
+//	Description - описание компании
+//	Address - физический адрес компании
+//	Phone - контактный телефон компании
 //	Equipment - список поставляемого оборудования
 type Supplier struct {
-	ID          int         `gorm:"primaryKey" json:"id"`
+	ID          uint        `gorm:"primaryKey" json:"id"`
 	Name        string      `json:"name"`
-	ContactInfo string      `json:"contact_info"`
+	Description string      `json:"description"`
+	Address     string      `json:"address"`
+	Phone       string      `json:"phone"`
 	Equipment   []Equipment `gorm:"foreignKey:SupplierID" json:"equipment"`
 }
 
@@ -143,7 +155,7 @@ type Supplier struct {
 //	FromMovements - история перемещений из этого места
 //	ToMovements - история перемещений в это место
 type Location struct {
-	ID            int         `gorm:"primaryKey" json:"id"`
+	ID            uint        `gorm:"primaryKey" json:"id"`
 	Name          string      `json:"name"`
 	Description   string      `json:"description"`
 	Address       string      `json:"address"`
@@ -166,19 +178,53 @@ type Location struct {
 //	DocumentID - ссылка на документ-основание
 //	Date - дата перемещения
 type Movement struct {
-	ID             int        `gorm:"primaryKey" json:"id"`
-	EquipmentID    int        `json:"equipment_id"`
+	ID             uint       `gorm:"primaryKey" json:"id"`
+	EquipmentID    uint       `json:"equipment_id"`
 	Equipment      *Equipment `gorm:"foreignKey:EquipmentID;references:ID" json:"equipment"`
-	FromLocationID int        `json:"from_location_id"`
+	FromLocationID uint       `json:"from_location_id"`
 	FromLocation   *Location  `gorm:"foreignKey:FromLocationID;references:ID" json:"from_location"`
-	ToLocationID   int        `json:"to_location_id"`
+	ToLocationID   uint       `json:"to_location_id"`
 	ToLocation     *Location  `gorm:"foreignKey:ToLocationID;references:ID" json:"to_location"`
 	Quantity       int        `json:"quantity"`
 	Reason         string     `json:"reason"`
-	CreatedByID    int        `json:"created_by_id"`
+	CreatedByID    uint       `json:"created_by_id"`
 	CreatedBy      *User      `gorm:"foreignKey:CreatedByID;references:ID" json:"created_by"`
-	DocumentID     int        `json:"document_id"`
-	Date           Date       `json:"date" gorm:"type:date"`
+	DocumentID     uint       `json:"document_id"`
+	Date           time.Time  `json:"date" gorm:"type:date"`
+}
+
+// MarshalJSON реализует интерфейс json.Marshaler для Movement
+func (m *Movement) MarshalJSON() ([]byte, error) {
+	type Alias Movement
+	return json.Marshal(&struct {
+		*Alias
+		Date string `json:"date"`
+	}{
+		Alias: (*Alias)(m),
+		Date:  m.Date.Format("2006-01-02"),
+	})
+}
+
+// UnmarshalJSON реализует интерфейс json.Unmarshaler для Movement
+func (m *Movement) UnmarshalJSON(data []byte) error {
+	type Alias Movement
+	aux := &struct {
+		*Alias
+		Date string `json:"date"`
+	}{
+		Alias: (*Alias)(m),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.Date != "" {
+		parsedTime, err := time.Parse("2006-01-02", aux.Date)
+		if err != nil {
+			return err
+		}
+		m.Date = parsedTime
+	}
+	return nil
 }
 
 // Document представляет документ учета (акт/накладная)
@@ -199,16 +245,16 @@ type Movement struct {
 //	Comment - комментарий к документу
 //	CreatedAt/UpdatedAt - метки времени
 type Document struct {
-	ID           int            `gorm:"primaryKey" json:"id"`
+	ID           uint           `gorm:"primaryKey" json:"id"`
 	Type         string         `json:"type"`
 	Number       string         `gorm:"unique" json:"number"`
 	Status       string         `json:"status"`
-	Date         Date           `json:"date" gorm:"type:date"`
-	CreatedByID  int            `json:"created_by_id"`
+	Date         time.Time      `json:"date" gorm:"type:date"`
+	CreatedByID  uint           `json:"created_by_id"`
 	CreatedBy    *User          `gorm:"foreignKey:CreatedByID" json:"created_by"`
-	ApprovedByID int            `gorm:"default:null" json:"approved_by_id"`
+	ApprovedByID uint           `gorm:"default:null" json:"approved_by_id"`
 	ApprovedBy   *User          `gorm:"foreignKey:ApprovedByID" json:"approved_by"`
-	LocationID   int            `json:"location_id"`
+	LocationID   uint           `json:"location_id"`
 	Location     *Location      `gorm:"foreignKey:LocationID" json:"location"`
 	Items        []DocumentItem `gorm:"foreignKey:DocumentID" json:"items"`
 	Comment      string         `json:"comment"`
@@ -216,25 +262,79 @@ type Document struct {
 	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
-// DocumentItem представляет элемент документа (приход/расход/инвентаризация)
+// MarshalJSON реализует интерфейс json.Marshaler для Document
+func (d *Document) MarshalJSON() ([]byte, error) {
+	type Alias Document
+	return json.Marshal(&struct {
+		*Alias
+		Date string `json:"date"`
+	}{
+		Alias: (*Alias)(d),
+		Date:  d.Date.Format("2006-01-02"),
+	})
+}
+
+// UnmarshalJSON реализует интерфейс json.Unmarshaler для Document
+func (d *Document) UnmarshalJSON(data []byte) error {
+	type Alias Document
+	aux := &struct {
+		*Alias
+		Date string `json:"date"`
+	}{
+		Alias: (*Alias)(d),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.Date != "" {
+		parsedTime, err := time.Parse("2006-01-02", aux.Date)
+		if err != nil {
+			return err
+		}
+		d.Date = parsedTime
+	}
+	return nil
+}
+
+// DocumentItem представляет позицию документа
+// Поля:
 //
 //	ID - уникальный идентификатор
 //	DocumentID - ссылка на документ
 //	EquipmentID - ссылка на оборудование
-//	Equipment - связанное оборудование (gorm relation)
-//	Quantity - количество для документов прихода/расхода
-//	ActualQuantity - фактическое количество при инвентаризации
-//	Price - цена за единицу
-//	TotalPrice - общая сумма
+//	Equipment - связанное оборудование
+//	Quantity - количество
+//	ActualQuantity - фактическое количество
+//	Price - цена единицы
+//	TotalPrice - общая стоимость
 //	Comment - комментарий
 type DocumentItem struct {
-	ID             int        `gorm:"primaryKey" json:"id"`
-	DocumentID     int        `json:"document_id"`
-	EquipmentID    int        `json:"equipment_id"`
-	Equipment      *Equipment `gorm:"foreignKey:EquipmentID" json:"equipment"`
-	Quantity       int        `json:"quantity"`        // Количество для документов прихода/расхода
-	ActualQuantity int        `json:"actual_quantity"` // Фактическое количество при инвентаризации
-	Price          float64    `json:"price"`           // Цена за единицу
-	TotalPrice     float64    `json:"total_price"`     // Общая сумма
-	Comment        string     `json:"comment"`
+	ID             uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	DocumentID     uint      `gorm:"not null;index:idx_doc_equipment,priority:1" json:"document_id"`
+	EquipmentID    uint      `gorm:"not null;index:idx_doc_equipment,priority:2" json:"equipment_id"`
+	Equipment      Equipment `gorm:"foreignKey:EquipmentID;references:ID" json:"equipment"`
+	Quantity       int       `gorm:"not null" json:"quantity"`
+	ActualQuantity int       `json:"actual_quantity"`
+	Price          float64   `gorm:"not null" json:"price"`
+	TotalPrice     float64   `gorm:"not null" json:"total_price"`
+	Comment        string    `json:"comment"`
+}
+
+// Category represents an equipment category
+type Category struct {
+	ID          uint   `gorm:"primaryKey" json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// CategoryResponse represents a response containing a single category
+type CategoryResponse struct {
+	Model   *Category `json:"model"`
+	Message string    `json:"msg"`
+}
+
+// CategoryListResponse represents a response containing a list of categories
+type CategoryListResponse struct {
+	Model   []Category `json:"model"`
+	Message string     `json:"msg"`
 }

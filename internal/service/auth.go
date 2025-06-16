@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -59,32 +60,39 @@ func (s *AuthService) createAdminIfNotExists() error {
 }
 
 func (s *AuthService) Login(user map[string]string) (*model.LoginResponse, error) {
+	// Validate required fields
+	if user["username"] == "" || user["password"] == "" {
+		return nil, fmt.Errorf("username and password are required")
+	}
+
 	newUser := &model.User{
 		Username: user["username"],
-		Password: user["password"],
 	}
 
 	login, err := s.repo.Login(newUser)
 	if err != nil {
-		return nil, err
+		log.Printf("[service] login error: %v", err)
+		return nil, fmt.Errorf("invalid credentials")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(login.Password), []byte(user["password"])); err != nil {
-		log.Println("[service] invalid password:", err)
-		return nil, err
+		log.Printf("[service] invalid password: %v", err)
+		return nil, fmt.Errorf("invalid credentials")
 	}
 
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Issuer:    strconv.Itoa(login.ID),
+		Issuer:    strconv.FormatUint(uint64(login.ID), 10),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 	})
 
 	token, err := claims.SignedString([]byte(viper.GetString("SECRET_KEY")))
 	if err != nil {
-		log.Println("[service] could not generate token:", err)
-		return nil, err
+		log.Printf("[service] could not generate token: %v", err)
+		return nil, fmt.Errorf("internal server error")
 	}
 
+	// Don't expose password hash in response
+	login.Password = ""
 	return &model.LoginResponse{
 		User:  login,
 		Token: token,
@@ -92,20 +100,30 @@ func (s *AuthService) Login(user map[string]string) (*model.LoginResponse, error
 }
 
 func (s *AuthService) Register(user map[string]string) (*model.User, error) {
+	// Validate required fields
+	if user["username"] == "" || user["password"] == "" {
+		return nil, fmt.Errorf("username and password are required")
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user["password"]), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to hash password: %v", err)
 	}
 
 	newUser := &model.User{
-		Username: user["username"],
-		Password: string(hashedPassword),
+		Username:  user["username"],
+		Password:  string(hashedPassword),
+		Role:      user["role"], // If role is not provided, it will be empty
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	reg, err := s.repo.Register(newUser)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to register user: %v", err)
 	}
 
+	// Don't return the password hash
+	reg.Password = ""
 	return reg, nil
 }

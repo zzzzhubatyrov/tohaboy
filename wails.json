@@ -1,13 +1,13 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "tohaboy",
-  "outputfilename": "tohaboy",
+  "name": "Инвентаризация и управление оборудованием",
+  "outputfilename": "app",
   "frontend:install": "npm install",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
   "author": {
-    "name": "zzzzhubatyrov",
-    "email": "whqhub@bk.ru"
+    "name": "gormcorpsx",
+    "email": "gormcorpsx@gmail.com"
   }
 }

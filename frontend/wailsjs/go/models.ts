@@ -38,11 +38,91 @@ export namespace gorm {
 
 export namespace model {
 	
+	export class Category {
+	    id: number;
+	    name: string;
+	    description: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Category(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	    }
+	}
+	export class CategoryListResponse {
+	    model: Category[];
+	    msg: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CategoryListResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.model = this.convertValues(source["model"], Category);
+	        this.msg = source["msg"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class CategoryResponse {
+	    model?: Category;
+	    msg: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CategoryResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.model = this.convertValues(source["model"], Category);
+	        this.msg = source["msg"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class DocumentItem {
 	    id: number;
 	    document_id: number;
 	    equipment_id: number;
-	    equipment?: Equipment;
+	    equipment: Equipment;
 	    quantity: number;
 	    actual_quantity: number;
 	    price: number;
@@ -142,7 +222,9 @@ export namespace model {
 	export class Supplier {
 	    id: number;
 	    name: string;
-	    contact_info: string;
+	    description: string;
+	    address: string;
+	    phone: string;
 	    equipment: Equipment[];
 	
 	    static createFrom(source: any = {}) {
@@ -153,7 +235,9 @@ export namespace model {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
 	        this.name = source["name"];
-	        this.contact_info = source["contact_info"];
+	        this.description = source["description"];
+	        this.address = source["address"];
+	        this.phone = source["phone"];
 	        this.equipment = this.convertValues(source["equipment"], Equipment);
 	    }
 	
@@ -178,12 +262,13 @@ export namespace model {
 	export class Equipment {
 	    id: number;
 	    name: string;
-	    serial_number: string;
-	    category: string;
 	    description: string;
-	    price: number;
+	    serial_number: string;
 	    status: string;
 	    quantity: number;
+	    price: number;
+	    category_id: number;
+	    category?: Category;
 	    location_id: number;
 	    location?: Location;
 	    supplier_id: number;
@@ -203,12 +288,13 @@ export namespace model {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
 	        this.name = source["name"];
-	        this.serial_number = source["serial_number"];
-	        this.category = source["category"];
 	        this.description = source["description"];
-	        this.price = source["price"];
+	        this.serial_number = source["serial_number"];
 	        this.status = source["status"];
 	        this.quantity = source["quantity"];
+	        this.price = source["price"];
+	        this.category_id = source["category_id"];
+	        this.category = this.convertValues(source["category"], Category);
 	        this.location_id = source["location_id"];
 	        this.location = this.convertValues(source["location"], Location);
 	        this.supplier_id = source["supplier_id"];
@@ -381,6 +467,20 @@ export namespace model {
 		    }
 		    return a;
 		}
+	}
+	export class DocumentExportResponse {
+	    content: string;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DocumentExportResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.content = source["content"];
+	        this.message = source["message"];
+	    }
 	}
 	
 	export class DocumentListResponse {

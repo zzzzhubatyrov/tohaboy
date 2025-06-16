@@ -75,7 +75,7 @@ func (r *MovementRepository) CreateMovement(movement *model.Movement) model.Resp
 	}
 }
 
-func (r *MovementRepository) GetMovement(id int) model.Response[*model.Movement] {
+func (r *MovementRepository) GetMovement(id uint) model.Response[*model.Movement] {
 	var movement model.Movement
 
 	if err := r.db.Preload("Equipment").
@@ -101,7 +101,7 @@ func (r *MovementRepository) UpdateMovement(equipmentMovement *model.Movement) m
 	return model.Response[*model.Movement]{}
 }
 
-func (r *MovementRepository) DeleteMovement(id int) model.Response[*model.Movement] {
+func (r *MovementRepository) DeleteMovement(id uint) model.Response[*model.Movement] {
 	if err := r.db.Delete(&model.Movement{}, id).Error; err != nil {
 		return model.Response[*model.Movement]{}
 	}
@@ -128,7 +128,7 @@ func (r *MovementRepository) GetAllMovements() model.Response[[]model.Movement] 
 	}
 }
 
-func (r *MovementRepository) GetMovementsByEquipment(equipmentID int) model.Response[[]model.Movement] {
+func (r *MovementRepository) GetMovementsByEquipment(equipmentID uint) model.Response[[]model.Movement] {
 	var movements []model.Movement
 
 	if err := r.db.Preload("Equipment").
@@ -148,7 +148,7 @@ func (r *MovementRepository) GetMovementsByEquipment(equipmentID int) model.Resp
 	}
 }
 
-func (r *MovementRepository) GetMovementsByLocation(locationID int) model.Response[[]model.Movement] {
+func (r *MovementRepository) GetMovementsByLocation(locationID uint) model.Response[[]model.Movement] {
 	var movements []model.Movement
 
 	if err := r.db.Preload("Equipment").
